@@ -2,7 +2,20 @@
 """some helper functions for project 1."""
 import csv
 import numpy as np
+import proj1_helpers
+from proj1_helpers import load_csv_data
+import pandas as pd
 
+
+
+
+def standardize(x):
+    """Standardize the original data set."""
+    mean_x = np.mean(x)
+    x = x - mean_x
+    std_x = np.std(x)
+    x = x / std_x
+    return x, mean_x, std_x
 
 def batch_iter(y, tx, batch_size, num_batches=1, shuffle=True):
    
@@ -30,20 +43,22 @@ def compute_loss(y, tx, w):
     e = y - tx.dot(w)
     return calculate_mse(e)
 
-def 
+
     
 def least_squares_GD(y, tx, initial_w, max_iters, gamma):
     """Gradient descent algorithm."""
     w = initial_w
-    for n_iter in range(max_iters):
-        # compute loss, gradient
-        err = y - tx.dot(w)
-        grad = -tx.T.dot(err) / len(err)
-        loss = calculate_mse(err)
-        # gradient w by descent update
-        w = w - gamma * grad     
-        print("Gradient Descent({bi}/{ti}): loss={l}, w0={w0}, w1={w1}".format(
-              bi=n_iter, ti=max_iters - 1, l=loss, w0=w[0], w1=w[1]))
+    for i in range(len(w)-1):
+        b = w[:,i]
+        a = tx[i]
+        for n_iter in range(max_iters):
+            # compute loss, gradient
+            err = y[i] - a.dot(b)
+            grad = -a.T.dot(err)
+            loss = calculate_mse(err)
+            # gradient w by descent update
+            w[:,i] = w[:,i] - gamma * grad     
+            
 
     return loss, w
 
@@ -76,13 +91,20 @@ def ridge_regression(y, tx, lamb ):
     return loss,w
 
 
-def logistic_regression(y, tx, initial w, max iters, gamma):
-    """Code"""
-    
-    return y
 
 
-def reg_logistic_regression(y, tx, lambda, initial w, max iters, gamma):
-    """Code"""
-    
-    return y
+
+
+y,x,i = load_csv_data('data/train.csv',sub_sample=False)
+
+#next step standardize X
+x, mean_x, std_x = standardize(x)
+
+initial_w = np.random.rand(x.shape[1],x.shape[0])
+
+loss, w = least_squares_GD(y,x,initial_w,100,1)
+
+print(loss)
+
+
+
