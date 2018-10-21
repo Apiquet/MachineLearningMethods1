@@ -167,6 +167,7 @@ for i in range(len(y)-1):
     if (y[i] == y_test[i] ): 
         n=n+1
         
+print("Prediction accurracy: " )
 print(n/len(y))
     
 
