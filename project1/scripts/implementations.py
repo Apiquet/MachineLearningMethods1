@@ -8,6 +8,18 @@ import pandas as pd
 
 
 
+def sigmoid(t):
+     return (1/(1+np.exp(-t)))
+    
+def build_poly(x, degree):
+    """polynomial basis functions for input data x, for j=0 up to j=degree."""
+    poly = np.ones((len(x), 1))
+    for deg in range(1, degree+1):
+        poly = np.c_[poly, np.power(x, deg)]
+    return poly
+
+
+
 def standardize(x):
     """Standardize the original data set."""
     mean_x = np.mean(x)
@@ -85,13 +97,44 @@ def least_squares(y, tx):
 
 def ridge_regression(y, tx, lambda_ ):
    """implement ridge regression."""
-    aI = 2 * tx.shape[0] * lambda_ * np.identity(tx.shape[1])
-    a = tx.T.dot(tx) + aI
-    b = tx.T.dot(y)
-    return np.linalg.solve(a, b)
+   aI = 2 * tx.shape[0] * lambda_ * np.identity(tx.shape[1])
+   a = tx.T.dot(tx) + aI
+   b = tx.T.dot(y)
+   return np.linalg.solve(a, b)
+
+
+            
 
 
 
+
+
+def logistic_regression(y,tx,initial_w,max_iters,gamma):
+    w = initial_w[:]
+    for i in range(max_iters):
+        e = y - sigmoid(tx.dot(w))
+        grad = - tx.T.dot(e) / len(e)
+        w = w - gamma * grad
+    loss = calculate_mse(e)
+    return loss, w
+    
+
+def logistic_regression_sgd(y,tx,initial_w,batch_size,max_iters,gamma):
+    w = initial_w[:]
+    for i in range(max_iters):
+        for y_batch, tx_batch in batch_iter(y, tx, batch_size=batch_size, num_batches=1):
+            e = y - sigmoid(tx.dot(w))
+            grad = - tx.T.dot(e) / len(e)
+            w = w - gamma * grad
+    loss = calculate_mse(e)
+    return loss, w
+    
+
+
+
+"""
+TRAINING 
+"""
 
 y,x,i = load_csv_data('data/train.csv',sub_sample=False)
 
@@ -100,13 +143,32 @@ x, mean_x, std_x = standardize(x)
 #Add one dimenssion to X with only 1,beacause 1*W0+ x1*W1 + ...
 b = np.ones((x.shape[0],1), dtype = int)
 x = np.column_stack((b, x)) 
+#Now creat vector Polynomial basis
+#x = build_poly(x,31 )
 initial_w = np.random.rand(x.shape[1],1)
 y = y.reshape(y.shape[0],1)
+
 #loss, w = least_squares_GD(y,x,initial_w,1000,0.001)
-#loss , w = least_squares_SGD(y,x,initial_w,1,1000,0.001)
-loss, w = least_squares(y, x )
+#loss , w = least_squares_SGD(y,x,initial_w,1,500,0.001)
+#loss, w = least_squares(y, x)
+loss, w = logistic_regression(y,x,initial_w,1000,0.001)
 print(loss,w)
 
+
+y,x,i = load_csv_data('data/train.csv',sub_sample=False)
+x, mean_x, std_x = standardize(x) 
+#Add one dimenssion to X with only 1,beacause 1*W0+ x1*W1 + ...
+b = np.ones((x.shape[0],1), dtype = int)
+x = np.column_stack((b, x)) 
+
+y_test = proj1_helpers.predict_labels(w, x)
+n = 0
+for i in range(len(y)-1):
+    if (y[i] == y_test[i] ): 
+        n=n+1
+        
+print(n/len(y))
+    
 
 
 
