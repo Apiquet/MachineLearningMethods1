@@ -105,7 +105,7 @@ def ridge_regression(y, tx, lambda_ ):
 def logistic_regression(y,tx,initial_w,max_iters,gamma):
     w = initial_w[:]
     for i in range(max_iters):
-        grad = np.matmul(tx.T, sigmoid(tx.dot(w) - y))
+        grad = np.matmul(tx.T, sigmoid(np.matmul(tx,w) - y))
         w = w - gamma * grad
     loss = grad
     return loss, w
@@ -113,7 +113,7 @@ def logistic_regression(y,tx,initial_w,max_iters,gamma):
 def reg_logistic_regression(y,tx,initial_w,max_iters,gamma,lambda_):
     w = initial_w[:]
     for i in range(max_iters):
-        grad = np.matmul(tx.T, sigmoid(tx.dot(w) - y)) + (lambda_*w)
+        grad = np.matmul(tx.T, sigmoid(np.matmul(tx,w) - y)) + (lambda_*w)
         w = w - gamma * grad
     loss = grad
     return loss, w
@@ -162,7 +162,7 @@ y = y.reshape(y.shape[0],1)
 #loss , w = least_squares_SGD(y,x,initial_w,1,500,0.001)
 #loss, w = least_squares(y, x)
 #loss, w = logistic_regression(y,x,initial_w,1000,0.01)
-loss, w = reg_logistic_regression(y,x,initial_w,1000,0.01,.1)
+loss, w = reg_logistic_regression(y,x,initial_w,1000,0.01,1)
 print(loss,w)
 
 
