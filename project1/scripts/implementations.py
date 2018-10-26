@@ -113,7 +113,7 @@ def logistic_regression(y,tx,initial_w,max_iters,gamma):
 def reg_logistic_regression(y,tx,initial_w,max_iters,gamma,lambda_):
     w = initial_w[:]
     for i in range(max_iters):
-        grad = np.matmul(tx.T, sigmoid(np.matmul(tx,w)) - y) + (lambda_*w)
+        grad = tx.T.dot(sigmoid(tx.dot(w)) - y) + (lambda_*w)
         w = w - gamma * grad
     loss = grad
     return loss, w
@@ -146,7 +146,7 @@ def logistic_regression_sgd(y,tx,initial_w,batch_size,max_iters,gamma):
 TRAINING
 """
 
-y,x,i = load_csv_data('data/train.csv',sub_sample=False)
+y,x,i = load_csv_data('../data/train.csv',sub_sample=False)
 
 # next step standardize X
 x, mean_x, std_x = standardize(x)
@@ -166,7 +166,7 @@ loss, w = reg_logistic_regression(y,x,initial_w,1000,0.01,1)
 print(loss,w)
 
 
-y,x,i = load_csv_data('data/train.csv',sub_sample=False)
+y,x,i = load_csv_data('../data/train.csv',sub_sample=False)
 x, mean_x, std_x = standardize(x)
 # Add one dimenssion to X with only 1,beacause 1*W0+ x1*W1 + ...
 b = np.ones((x.shape[0],1), dtype = int)
