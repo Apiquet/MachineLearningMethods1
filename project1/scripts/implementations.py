@@ -20,8 +20,8 @@ def build_poly(x, degree):
 
 def standardize(x):
     """Standardize the original data set."""
-    for i in range(x.shape[1]):
-        x[:,i] = (x[:,i] - np.mean(x[:,i])) / np.std(x[:,i])
+    for col_idx in range(x.shape[1]):
+        x[:,col_idx] = (x[:,col_idx] - np.mean(x[:,col_idx])) / np.std(x[:,col_idx])
         #x[:,i] = (x[:,i] - x[:,i].min()) / (x[:,i].max() - x[:,i].min())
     return x
 
@@ -42,7 +42,6 @@ def batch_iter(y, tx, batch_size, num_batches=1, shuffle=True):
         if start_index != end_index:
             yield shuffled_y[start_index:end_index], shuffled_tx[start_index:end_index]
 
-
 def calculate_mse(e):
     """Calculate MSE value for an input error value or vector."""
     return (1/2)*np.mean(e**2)
@@ -51,6 +50,50 @@ def compute_loss(y, tx, w):
     """Computes loss for the error calculation function in the return statement."""
     e = y - tx.dot(w)
     return calculate_mse(e)
+
+def remove_columns(mtx):
+    """Removes columns from the dataset where too many values are -999."""
+    columns_to_remove = []
+    COLUMN_REMOVE_THRESHOLD = -250
+    for col_idx in range(mtx.shape[1]):
+        #print(np.sum(x[:,i])/x.shape[0])
+        if np.sum(mtx[:,col_idx])/mtx.shape[0] < COLUMN_REMOVE_THRESHOLD:
+            columns_to_remove.append(col_idx)
+    mtx_cols_removed = np.delete(mtx, columns_to_remove, axis=1)
+    return mtx_cols_removed
+
+def remove_rows(mtx, labels):
+    """Remove rows from the dataset and labels where any value is -999."""
+    rows_with_bad_data = np.where(mtx == -999)[0]
+    # Remove duplicates for rows with multiple values of -999
+    rows_to_remove = list(set(rows_with_bad_data))
+    mtx_rows_removed = np.delete(mtx, rows_to_remove, axis=0)
+    y_rows_removed = np.delete(labels, rows_to_remove)
+    return mtx_rows_removed, y_rows_removed
+
+def replace_outliers_with_mean(mtx):
+    """Replace values of -999 with the mean of the column."""
+    for col_idx in range(mtx.shape[1]):
+        col_for_calculating_mean = mtx[:,col_idx]
+        cells_with_bad_data = np.where(mtx[:,col_idx] == -999)
+        column_bad_cells_removed = np.delete(col_for_calculating_mean, cells_with_bad_data)
+        column_mean = np.mean(column_bad_cells_removed)
+
+        column_for_replacement = mtx[:,col_idx]
+        column_for_replacement[column_for_replacement == -999] = column_mean
+        mtx[:,col_idx] = column_for_replacement
+    return mtx
+
+def shuffle_data(mtx, labels):
+    full_matrix = np.column_stack(labels, mtx)
+    np.random.shuffle(full_matrix)
+    labels = full_matrix[:,0]
+    mtx = full_matrix[:,1:]
+    return mtx, labels
+
+"""
+TRAINING ALGORITHMS
+"""
 
 def least_squares_GD(y, tx, initial_w, max_iters, gamma):
     """Execute gradient descent algorithm."""
@@ -135,6 +178,7 @@ def reg_logistic_regression(y, tx, initial_w, max_iters, gamma, lambda_):
 TRAINING
 """
 
+
 def train(y,x):
     """Choose algorithm for training."""
     MAX_ITERS = 1000
@@ -170,7 +214,9 @@ def shuffle_data(mtx, labels):
     mtx = full_matrix[:,1:]
     return mtx, labels
 
-def calculate_prediction_accuracy(y_predictions, targets):
+
+
+def calculate_prediction_accuracy(predictions, targets):
     """Calculate the prediction accuracy for predictions against targets."""
     correct = 0
     total_samples = len(y_predictions)
