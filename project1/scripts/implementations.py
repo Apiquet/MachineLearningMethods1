@@ -119,25 +119,7 @@ def least_squares_SGD(y, tx, initial_w, batch_size, max_iters, gamma):
         loss = compute_loss(y, tx, w)
     return loss, w
 
-def remove_columns(mtx):
-    """Removes columns from the dataset where too many values are -999."""
-    columns_to_remove = []
-    COLUMN_REMOVE_THRESHOLD = -250
-    for col_idx in range(mtx.shape[1]):
-        #print(np.sum(x[:,i])/x.shape[0])
-        if np.sum(mtx[:,col_idx])/mtx.shape[0] < COLUMN_REMOVE_THRESHOLD:
-            columns_to_remove.append(col_idx)
-    mtx_cols_removed = np.delete(mtx, columns_to_remove, axis=1)
-    return mtx_cols_removed
 
-def remove_rows(mtx, labels):
-    """Removes rows from the dataset and labels where any value is -999."""
-    rows_with_bad_data = np.where(mtx == -999)[0]
-    # Remove duplicates for rows with multiple values of -999
-    rows_to_remove = list(set(rows_with_bad_data))
-    mtx_rows_removed = np.delete(mtx, rows_to_remove, axis=0)
-    y_rows_removed = np.delete(labels, rows_to_remove)
-    return mtx_rows_removed, y_rows_removed
 
 def least_squares(y, tx):
     """Calculate weights using least squares."""
@@ -166,8 +148,13 @@ def logistic_regression(y, tx, initial_w, max_iters, gamma):
 def reg_logistic_regression(y, tx, initial_w, max_iters, gamma, lambda_):
     """Calculate weights using regularized logistic regression."""
     w = initial_w[:]
+    print(y.shape)
+    print(x.shape)
+    print(x)
+    print(w.shape)
+    print(w)
     for i in range(max_iters):
-        grad = tx.T.dot( sigmoid(np.matmul(tx,w)) - y) + (lambda_*w)
+        grad = tx.T.dot( sigmoid(np.matmul(tx,w)) - y)+ (lambda_*w)
         w = w - gamma * grad
     loss = grad
     return loss, w
@@ -183,7 +170,7 @@ def train(y,x):
     """Choose algorithm for training."""
     MAX_ITERS = 1000
     GAMMA = 0.01
-    LAMBDA_ = 0.5
+    LAMBDA_ = 0.01
     initial_w = np.random.rand(x.shape[1],1)
     #loss, w = least_squares_GD(y,x,initial_w, MAX_ITERS, GAMMA)
     #loss , w = least_squares_SGD(y, x, initial_w, MAX_ITERS, GAMMA, LAMBDA)
@@ -194,25 +181,7 @@ def train(y,x):
 
 
 
-def replace_outliers_with_mean(mtx):
-    """Replace values of -999 with the mean of the column."""
-    for col_idx in range(mtx.shape[1]):
-        col_for_calculating_mean = mtx[:,col_idx]
-        cells_with_bad_data = np.where(mtx[:,col_idx] == -999)
-        column_bad_cells_removed = np.delete(col_for_calculating_mean, cells_with_bad_data)
-        column_mean = np.mean(column_bad_cells_removed)
 
-        column_for_replacement = mtx[:,col_idx]
-        column_for_replacement[column_for_replacement == -999] = column_mean
-        mtx[:,col_idx] = column_for_replacement
-    return mtx
-
-def shuffle_data(mtx, labels):
-    full_matrix = np.column_stack(labels, mtx)
-    np.random.shuffle(full_matrix)
-    labels = full_matrix[:,0]
-    mtx = full_matrix[:,1:]
-    return mtx, labels
 
 
 
@@ -238,8 +207,8 @@ def crossvalidation(y,x,k,n):
         
         x_validate = replace_outliers_with_mean(x_validate)
         
-        x_train = standardize(x_train)
-        x_validate = standardize(x_validate)
+        #x_train = standardize(x_train)
+        #x_validate = standardize(x_validate)
         
         w = train(y_train,x_train)
         y_predictions = predict_labels(w, x_validate)
