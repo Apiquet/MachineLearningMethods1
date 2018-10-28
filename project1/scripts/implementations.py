@@ -22,7 +22,7 @@ def standardize(x):
     """Standardize the original data set."""
     for col_idx in range(x.shape[1]):
         x[:,col_idx] = (x[:,col_idx] - np.mean(x[:,col_idx])) / np.std(x[:,col_idx])
-        #x[:,i] = (x[:,i] - x[:,i].min()) / (x[:,i].max() - x[:,i].min())
+        #x[:,col_idx] = (x[:,col_idx] - x[:,col_idx].min()) / (x[:,col_idx].max() - x[:,col_idx].min())
     return x
 
 def batch_iter(y, tx, batch_size, num_batches=1, shuffle=True):
@@ -66,7 +66,7 @@ def remove_rows(mtx, labels):
     """Remove rows from the dataset and labels where any value is -999."""
     rows_with_bad_data = np.where(mtx == -999)[0]
     # Remove duplicates for rows with multiple values of -999
-    rows_to_remove = list(set(rows_with_bad_data))
+    rows_to_remove = np.unique(rows_with_bad_data)
     mtx_rows_removed = np.delete(mtx, rows_to_remove, axis=0)
     y_rows_removed = np.delete(labels, rows_to_remove)
     return mtx_rows_removed, y_rows_removed
@@ -84,12 +84,12 @@ def replace_outliers_with_mean(mtx):
         mtx[:,col_idx] = column_for_replacement
     return mtx
 
-def shuffle_data(mtx, labels):
-    full_matrix = np.column_stack(labels, mtx)
-    np.random.shuffle(full_matrix)
-    labels = full_matrix[:,0]
-    mtx = full_matrix[:,1:]
-    return mtx, labels
+def shuffle_data(tx, y):
+      data_size = len(y)
+      shuffle_indices = np.random.permutation(np.arange(data_size))
+      shuffled_y = y[shuffle_indices]
+      shuffled_tx = tx[shuffle_indices]
+      return shuffled_tx, shuffled_y
 
 """
 TRAINING ALGORITHMS
@@ -148,14 +148,14 @@ def logistic_regression(y, tx, initial_w, max_iters, gamma):
 def reg_logistic_regression(y, tx, initial_w, max_iters, gamma, lambda_):
     """Calculate weights using regularized logistic regression."""
     w = initial_w[:]
-    print(y.shape)
-    print(x.shape)
-    print(x)
-    print(w.shape)
-    print(w)
+
+
+   
     for i in range(max_iters):
-        grad = tx.T.dot( sigmoid(np.matmul(tx,w)) - y)+ (lambda_*w)
+        grad = np.matmul(tx.T, sigmoid(np.matmul(tx,w)) - y)+ (lambda_*w)
+        
         w = w - gamma * grad
+        
     loss = grad
     return loss, w
 
@@ -170,7 +170,7 @@ def train(y,x):
     """Choose algorithm for training."""
     MAX_ITERS = 1000
     GAMMA = 0.01
-    LAMBDA_ = 0.01
+    LAMBDA_ = 0.5
     initial_w = np.random.rand(x.shape[1],1)
     #loss, w = least_squares_GD(y,x,initial_w, MAX_ITERS, GAMMA)
     #loss , w = least_squares_SGD(y, x, initial_w, MAX_ITERS, GAMMA, LAMBDA)
@@ -185,7 +185,7 @@ def train(y,x):
 
 
 
-def calculate_prediction_accuracy(predictions, targets):
+def calculate_prediction_accuracy(y_predictions, targets):
     """Calculate the prediction accuracy for predictions against targets."""
     correct = 0
     total_samples = len(y_predictions)
@@ -198,17 +198,20 @@ def calculate_prediction_accuracy(predictions, targets):
 
 def crossvalidation(y,x,k,n):
         x_validate = x[k:k + x.shape[0]//n]
+       
         y_validate = y[k:k + y.shape[0]//n]
-        x_train = np.concatenate((x[:k],x[k:+x.shape[0]+1]),axis = 0)
-        y_train = np.concatenate((y[:k],y[k:+y.shape[0]+1]),axis = 0)
+        x_train = np.concatenate((x[:k],x[k:k+x.shape[0]+1]),axis = 0)
+        y_train = np.concatenate((y[:k],y[k:k+y.shape[0]+1]),axis = 0)
         
-        x_train , y_train = remove_rows(x_train, y_train)
+        #x_train , y_train = remove_rows(x_train, y_train)
         
         
         x_validate = replace_outliers_with_mean(x_validate)
+        x_train = replace_outliers_with_mean(x_train)
         
-        #x_train = standardize(x_train)
-        #x_validate = standardize(x_validate)
+        x_train = standardize(x_train)
+        x_validate = standardize(x_validate)
+        x = addones(x)
         
         w = train(y_train,x_train)
         y_predictions = predict_labels(w, x_validate)
@@ -219,13 +222,18 @@ def crossvalidation(y,x,k,n):
     
 
 y,x,i = load_csv_data('data/train.csv',sub_sample=False)
-b = np.ones((x.shape[0],1), dtype = int)
-x = np.column_stack((b, x))# Add one dimenssion to X with only 1,beacause 1*W0+ x1*W1 + ...
-y = y.reshape(y.shape[0],1)    
+def addones(x):
+    b = np.ones((x.shape[0],1), dtype = int)
+    x = np.column_stack((b, x))# Add one dimenssion to X with only 1,beacause 1*W0+ x1*W1 + ...
+    
+    return x
 # Generate test targets
+y = y.reshape(y.shape[0],1)  
 y_test, x_test, i = load_csv_data('data/test.csv',sub_sample=False)
 x = remove_columns(x)
-n = 10
+n = 1
+
+x , y = shuffle_data(x,y)
 accuracies= []
 for k in range(0,x.shape[0],x.shape[0]//n):
     accuracy , y_predictions , w = crossvalidation(y,x,k,n)
