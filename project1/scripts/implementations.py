@@ -145,7 +145,7 @@ def reg_logistic_regression(y, tx, initial_w, max_iters, gamma, lambda_):
     """Calculate weights using regularized logistic regression."""
     w = initial_w[:]
     for i in range(max_iters):
-        grad = tx.T.dot( sigmoid(np.matmul(tx,w)) - y) + (lambda_*w)
+        grad = tx.T.dot(sigmoid(np.matmul(tx,w)) - y) + (lambda_*w)
         w = w - gamma * grad
     loss = grad
     return loss, w
