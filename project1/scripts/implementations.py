@@ -8,7 +8,9 @@ from proj1_helpers import load_csv_data, predict_labels, create_csv_submission
 
 
 def sigmoid(t):
-     return (1/(1+np.exp(-t)))
+    
+    
+    return (1/(1+np.exp(-t)))
 
 def build_poly(x, degree):
     """polynomial basis functions for input data x, for j=0 up to j=degree."""
@@ -21,11 +23,10 @@ def build_poly(x, degree):
 
 def standardize(x):
     """Standardize the original data set."""
-    mean_x = np.mean(x)
-    x = x - mean_x
-    std_x = np.std(x)
-    x = x / std_x
-    return x, mean_x, std_x
+    for i in range(x.shape[1]):
+        x[:,i] = (x[:,i] - np.mean(x[:,i]))/ np.std(x[:,i])
+        x[:,i] = (x[:,i] - x[:,i].min()) / (x[:,i].max() - x[:,i].min())
+    return x
 
 def batch_iter(y, tx, batch_size, num_batches=1, shuffle=True):
 
@@ -113,7 +114,7 @@ def logistic_regression(y,tx,initial_w,max_iters,gamma):
 def reg_logistic_regression(y,tx,initial_w,max_iters,gamma,lambda_):
     w = initial_w[:]
     for i in range(max_iters):
-        grad = tx.T.dot(sigmoid(tx.dot(w)) - y) + (lambda_*w)
+        grad = tx.T.dot( sigmoid(np.matmul(tx,w)) - y) + (lambda_*w)
         w = w - gamma * grad
     loss = grad
     return loss, w
@@ -146,11 +147,15 @@ def logistic_regression_sgd(y,tx,initial_w,batch_size,max_iters,gamma):
 TRAINING
 """
 
-y,x,i = load_csv_data('../data/train.csv',sub_sample=False)
+y,x,i = load_csv_data('data/train.csv',sub_sample=False)
 
 # next step standardize X
-x, mean_x, std_x = standardize(x)
+x = standardize(x)
+
+
 # Add one dimenssion to X with only 1,beacause 1*W0+ x1*W1 + ...
+
+
 b = np.ones((x.shape[0],1), dtype = int)
 x = np.column_stack((b, x))
 # Now creat vector Polynomial basis
@@ -162,12 +167,16 @@ y = y.reshape(y.shape[0],1)
 #loss , w = least_squares_SGD(y,x,initial_w,1,500,0.001)
 #loss, w = least_squares(y, x)
 #loss, w = logistic_regression(y,x,initial_w,1000,0.01)
-loss, w = reg_logistic_regression(y,x,initial_w,1000,0.01,1)
+loss, w = reg_logistic_regression(y,x,initial_w,10000,0.0001,0.5)
+
+
 print(loss,w)
 
 
-y,x,i = load_csv_data('../data/train.csv',sub_sample=False)
-x, mean_x, std_x = standardize(x)
+y,x,i = load_csv_data('data/train.csv',sub_sample=False)
+x = standardize(x)
+
+
 # Add one dimenssion to X with only 1,beacause 1*W0+ x1*W1 + ...
 b = np.ones((x.shape[0],1), dtype = int)
 x = np.column_stack((b, x))
