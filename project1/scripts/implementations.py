@@ -117,6 +117,8 @@ def least_squares_SGD(y, tx, initial_w, batch_size, max_iters, gamma):
         loss = compute_loss(y, tx, w)
     return loss, w
 
+
+
 def least_squares(y, tx):
     """Calculate weights using least squares."""
     a = tx.T.dot(tx)
@@ -144,6 +146,11 @@ def logistic_regression(y, tx, initial_w, max_iters, gamma):
 def reg_logistic_regression(y, tx, initial_w, max_iters, gamma, lambda_):
     """Calculate weights using regularized logistic regression."""
     w = initial_w[:]
+    print(y.shape)
+    print(x.shape)
+    print(x)
+    print(w.shape)
+    print(w)
     for i in range(max_iters):
         grad = tx.T.dot(sigmoid(np.matmul(tx,w)) - y) + (lambda_*w)
         w = w - gamma * grad
@@ -160,10 +167,18 @@ y,x,i = load_csv_data('data/train.csv', sub_sample=False)
 TRAINING_PROPORTION = 0.8
 x_train, x_test = x[:(TRAINING_PROPORTION * )]
 
-# Preprocessing
-x = remove_columns(x)
-x, y = remove_rows(x, y)
-x = standardize(x)
+def train(y,x):
+    """Choose algorithm for training."""
+    MAX_ITERS = 1000
+    GAMMA = 0.01
+    LAMBDA_ = 0.01
+    initial_w = np.random.rand(x.shape[1],1)
+    #loss, w = least_squares_GD(y,x,initial_w, MAX_ITERS, GAMMA)
+    #loss , w = least_squares_SGD(y, x, initial_w, MAX_ITERS, GAMMA, LAMBDA)
+    #loss, w = least_squares(y, x)
+    #loss, w = logistic_regression(y, x, initial_w, MAX_ITERS, GAMMA)
+    loss, w = reg_logistic_regression(y, x, initial_w, MAX_ITERS, GAMMA, LAMBDA_)
+    return w
 
 # Add one dimenssion to X with only 1,beacause 1*W0+ x1*W1 + ...
 b = np.ones((x.shape[0],1), dtype = int)
@@ -174,27 +189,7 @@ x = np.column_stack((b, x))
 initial_w = np.random.rand(x.shape[1],1)
 y = y.reshape(y.shape[0],1)
 
-"""Choose algorithm for training."""
-MAX_ITERS = 100
-GAMMA = 0.001
-LAMBDA_ = 0.5
-#loss, w = least_squares_GD(y,x,initial_w, MAX_ITERS, GAMMA)
-#loss , w = least_squares_SGD(y, x, initial_w, MAX_ITERS, GAMMA, LAMBDA)
-#loss, w = least_squares(y, x)
-#loss, w = logistic_regression(y, x, initial_w, MAX_ITERS, GAMMA)
-loss, w = reg_logistic_regression(y, x, initial_w, MAX_ITERS, GAMMA, LAMBDA_)
 
-print(loss,w)
-
-
-"""
-TESTING
-"""
-# Generate test targets
-y_test, x_test, i = load_csv_data('data/test.csv',sub_sample=False)
-x_test = remove_columns(x)
-x, y = remove_rows(x, y)
-x = standardize(x)
 
 
 y_predictions = predict_labels(w, x_test)
@@ -208,5 +203,41 @@ def calculate_prediction_accuracy(predictions, targets):
             correct += 1
     return correct / total_samples
 
-print("Prediction accurracy: ")
-print(calculate_prediction_accuracy(y_predictions, y_test))
+
+
+def crossvalidation(y,x,k,n):
+        x_validate = x[k:k + x.shape[0]//n]
+        y_validate = y[k:k + y.shape[0]//n]
+        x_train = np.concatenate((x[:k],x[k:+x.shape[0]+1]),axis = 0)
+        y_train = np.concatenate((y[:k],y[k:+y.shape[0]+1]),axis = 0)
+
+        x_train , y_train = remove_rows(x_train, y_train)
+
+
+        x_validate = replace_outliers_with_mean(x_validate)
+
+        #x_train = standardize(x_train)
+        #x_validate = standardize(x_validate)
+
+        w = train(y_train,x_train)
+        y_predictions = predict_labels(w, x_validate)
+        accuracy = calculate_prediction_accuracy(y_predictions, y_validate)
+        return accuracy , y_predictions , w
+
+
+
+
+y,x,i = load_csv_data('data/train.csv',sub_sample=False)
+b = np.ones((x.shape[0],1), dtype = int)
+x = np.column_stack((b, x))# Add one dimenssion to X with only 1,beacause 1*W0+ x1*W1 + ...
+y = y.reshape(y.shape[0],1)
+# Generate test targets
+y_test, x_test, i = load_csv_data('data/test.csv',sub_sample=False)
+x = remove_columns(x)
+n = 10
+accuracies= []
+for k in range(0,x.shape[0],x.shape[0]//n):
+    accuracy , y_predictions , w = crossvalidation(y,x,k,n)
+    accuracies.append(accuracy)
+
+print(accuracies)
