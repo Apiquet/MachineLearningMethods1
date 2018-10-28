@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import csv
 import numpy as np
+
+
 # Import all helper functions; packages listed explicitly for clarity.
 from proj1_helpers import load_csv_data, predict_labels, create_csv_submission
 
@@ -74,6 +76,26 @@ def least_squares_SGD(y, tx, initial_w, batch_size, max_iters, gamma):
         loss = compute_loss(y, tx, w)
     return loss, w
 
+def remove_columns(mtx):
+    """Removes columns from the dataset where too many values are -999."""
+    columns_to_remove = []
+    COLUMN_REMOVE_THRESHOLD = -250
+    for col_idx in range(mtx.shape[1]):
+        #print(np.sum(x[:,i])/x.shape[0])
+        if np.sum(mtx[:,col_idx])/mtx.shape[0] < COLUMN_REMOVE_THRESHOLD:
+            columns_to_remove.append(col_idx)
+    mtx_cols_removed = np.delete(mtx, columns_to_remove, axis=1)
+    return mtx_cols_removed
+
+def remove_rows(mtx, labels):
+    """Removes rows from the dataset and labels where any value is -999."""
+    rows_with_bad_data = np.where(mtx == -999)[0]
+    # Remove duplicates for rows with multiple values of -999
+    rows_to_remove = list(set(rows_with_bad_data))
+    mtx_rows_removed = np.delete(mtx, rows_to_remove, axis=0)
+    y_rows_removed = np.delete(labels, rows_to_remove)
+    return mtx_rows_removed, y_rows_removed
+
 def least_squares(y, tx):
     """Calculate weights using least squares."""
     a = tx.T.dot(tx)
@@ -113,44 +135,88 @@ def reg_logistic_regression(y, tx, initial_w, max_iters, gamma, lambda_):
 TRAINING
 """
 
-y,x,i = load_csv_data('data/train.csv',sub_sample=False)
+def train(y,x):
+    """Choose algorithm for training."""
+    MAX_ITERS = 1000
+    GAMMA = 0.01
+    LAMBDA_ = 0.5
+    initial_w = np.random.rand(x.shape[1],1)
+    #loss, w = least_squares_GD(y,x,initial_w, MAX_ITERS, GAMMA)
+    #loss , w = least_squares_SGD(y, x, initial_w, MAX_ITERS, GAMMA, LAMBDA)
+    #loss, w = least_squares(y, x)
+    #loss, w = logistic_regression(y, x, initial_w, MAX_ITERS, GAMMA)
+    loss, w = reg_logistic_regression(y, x, initial_w, MAX_ITERS, GAMMA, LAMBDA_)
+    return w
 
-x = standardize(x)
 
-# Add one dimenssion to X with only 1,beacause 1*W0+ x1*W1 + ...
-b = np.ones((x.shape[0],1), dtype = int)
-x = np.column_stack((b, x))
 
-# Now creat vector Polynomial basis
-#x = build_poly(x,31 )
-initial_w = np.random.rand(x.shape[1],1)
-y = y.reshape(y.shape[0],1)
+def replace_outliers_with_mean(mtx):
+    """Replace values of -999 with the mean of the column."""
+    for col_idx in range(mtx.shape[1]):
+        col_for_calculating_mean = mtx[:,col_idx]
+        cells_with_bad_data = np.where(mtx[:,col_idx] == -999)
+        column_bad_cells_removed = np.delete(col_for_calculating_mean, cells_with_bad_data)
+        column_mean = np.mean(column_bad_cells_removed)
 
-"""Choose algorithm for training."""
-MAX_ITERS = 100
-GAMMA = 0.001
-LAMBDA_ = 0.5
-#loss, w = least_squares_GD(y,x,initial_w, MAX_ITERS, GAMMA)
-#loss , w = least_squares_SGD(y, x, initial_w, MAX_ITERS, GAMMA, LAMBDA)
-#loss, w = least_squares(y, x)
-#loss, w = logistic_regression(y, x, initial_w, MAX_ITERS, GAMMA)
-loss, w = reg_logistic_regression(y, x, initial_w, MAX_ITERS, GAMMA, LAMBDA_)
+        column_for_replacement = mtx[:,col_idx]
+        column_for_replacement[column_for_replacement == -999] = column_mean
+        mtx[:,col_idx] = column_for_replacement
+    return mtx
 
-print(loss,w)
+def shuffle_data(mtx, labels):
+    full_matrix = np.column_stack(labels, mtx)
+    np.random.shuffle(full_matrix)
+    labels = full_matrix[:,0]
+    mtx = full_matrix[:,1:]
+    return mtx, labels
 
-y_predictions = predict_labels(w, x)
-
-# Generate test targets
-y_test, x, i = load_csv_data('data/test.csv',sub_sample=False)
-
-def calculate_prediction_accuracy(predictions, targets):
+def calculate_prediction_accuracy(y_predictions, targets):
     """Calculate the prediction accuracy for predictions against targets."""
     correct = 0
-    total_samples = len(predictions)
+    total_samples = len(y_predictions)
     for i in range(total_samples):
         if (targets[i] == y_predictions[i]):
             correct += 1
     return correct / total_samples
 
-print("Prediction accurracy: ")
-print(calculate_prediction_accuracy(y_predictions, y_test))
+
+
+def crossvalidation(y,x,k,n):
+        x_validate = x[k:k + x.shape[0]//n]
+        y_validate = y[k:k + y.shape[0]//n]
+        x_train = np.concatenate((x[:k],x[k:+x.shape[0]+1]),axis = 0)
+        y_train = np.concatenate((y[:k],y[k:+y.shape[0]+1]),axis = 0)
+        
+        x_train , y_train = remove_rows(x_train, y_train)
+        
+        
+        x_validate = replace_outliers_with_mean(x_validate)
+        
+        x_train = standardize(x_train)
+        x_validate = standardize(x_validate)
+        
+        w = train(y_train,x_train)
+        y_predictions = predict_labels(w, x_validate)
+        accuracy = calculate_prediction_accuracy(y_predictions, y_validate)
+        return accuracy , y_predictions , w 
+ 
+    
+    
+
+y,x,i = load_csv_data('data/train.csv',sub_sample=False)
+b = np.ones((x.shape[0],1), dtype = int)
+x = np.column_stack((b, x))# Add one dimenssion to X with only 1,beacause 1*W0+ x1*W1 + ...
+y = y.reshape(y.shape[0],1)    
+# Generate test targets
+y_test, x_test, i = load_csv_data('data/test.csv',sub_sample=False)
+x = remove_columns(x)
+n = 10
+accuracies= []
+for k in range(0,x.shape[0],x.shape[0]//n):
+    accuracy , y_predictions , w = crossvalidation(y,x,k,n)
+    accuracies.append(accuracy)
+   
+print(accuracies)
+    
+    
+        
