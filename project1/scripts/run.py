@@ -4,6 +4,7 @@
 """
 
 import implementations
+import numpy as np
 
 """
 change the argument 'function':
@@ -21,9 +22,11 @@ we test our accuracy with the 1/10 of the train-set
 """
 
 Max_iter = 1000
+
+
 Gamma = 0.01
-lambda_ = 0.001
-function = 0
+lambda_ = 2
+function = 5
 
 param = [Max_iter,Gamma,lambda_,function]
 
