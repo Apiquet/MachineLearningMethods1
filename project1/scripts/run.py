@@ -7,27 +7,21 @@ import implementations
 import numpy as np
 
 """
-change the argument 'function':
+Changing the argument 'function' specifies which training algorithm to use:
+
 function = 0 => Least_squares_GD
 function = 1 => Least_squares_SGD
 function = 2 => Least_squares
 function = 3 => ridge_regression
 function = 4 => logistic_regression
 function = 5 => reg_logistic_regression
-
-
-By default the we train on 9/10 of the train-set 
-we test our accuracy with the 1/10 of the train-set
-
 """
 
-Max_iter = 1000
+MAX_ITER = 1000
+GAMMA = 0.01
+LAMBDA_ = 2
+FUNCTION = 5
 
+params = [MAX_ITER, GAMMA, LAMBDA_, FUNCTION]
 
-Gamma = 0.01
-lambda_ = 2
-function = 5
-
-param = [Max_iter,Gamma,lambda_,function]
-
-implementations.main(param)
+implementations.main(params)
