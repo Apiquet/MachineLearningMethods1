@@ -298,18 +298,17 @@ def main(param):
     y_test, x_test, i_test = load_csv_data('data/test.csv', sub_sample=False)
     # Reshape y
     y = y.reshape(y.shape[0], 1)
-    # Preprocess x ( remove features with lot of -999 )
+    # Preprocess x (remove features with lot of -999)
     x = remove_columns(x)
-    # n : number of sub-set for crossvalidation
-    N_TOTAL_FOLDS = 1
 
+    # Number of sub-set for crossvalidation
+    N_TOTAL_FOLDS = 1
     accuracies= []
     x, y = shuffle_data(x, y)
-
     for k in range(0, x.shape[0], x.shape[0] // N_TOTAL_FOLDS):
         accuracy, y_predictions, w = crossvalidation(y, x, k, N_TOTAL_FOLDS, param)
         accuracies.append(accuracy)
-
         print(accuracies)
+        
     #plot_result(lambdas,accuracies)
     submission(x_test, w, i_test)
