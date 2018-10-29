@@ -235,14 +235,14 @@ def addones(x):
 # Generate test targets
 y = y.reshape(y.shape[0],1)  
 y_test, x_test, i = load_csv_data('data/test.csv',sub_sample=False)
-#x = remove_columns(x)
+x = remove_columns(x)
 n = 1
 lambda_ = 0
 accuracies= []
 x , y = shuffle_data(x,y)
 for i in range(11):
     lambda_ = i/10  
-    print("Lambda: "+str(int(lambda_))+"/"+str(10))
+    print("Lambda: "+str(lambda_)+"/"+str(10))
     for k in range(0,x.shape[0],x.shape[0]//n):
         accuracy , y_predictions , w = crossvalidation(y,x,k,n,lambda_)
         accuracies.append(accuracy)
