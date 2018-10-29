@@ -257,13 +257,13 @@ def crossvalidation(y,x,k,n,param):
 
     x_train = standardize(x_train)
     x_validate = standardize(x_validate)
-    
+
     #x_train = build_poly(x_train, 3)
     #x_validate = build_poly(x_validate, 3)
-    
+
     x_train = addones(x_train)
     x_validate = addones(x_validate)
-    
+
     print(x_train.shape)
     w = train(y_train, x_train, param)
     y_predictions = predict_labels(w, x_validate)
@@ -288,7 +288,7 @@ def submission(x_test,w,i):
     x_test = standardize(x_test)
     #x_test = build_poly(x_test,3)
     x_test = addones(x_test)
-    
+
     y_predictions = predict_labels(w, x_test)
     y_predictions = predict_reverse(y_predictions)
     y_predictions.reshape(y_predictions.shape[0],)
@@ -310,13 +310,12 @@ def main(param):
 
     # Number of sub-set for crossvalidation
     N_TOTAL_FOLDS = 1
-    accuracies= []
+    accuracies = []
     x, y = shuffle_data(x, y)
     for k in range(0, x.shape[0], x.shape[0] // N_TOTAL_FOLDS):
         accuracy, y_predictions, w = crossvalidation(y, x, k, N_TOTAL_FOLDS, param)
         accuracies.append(accuracy)
         print(accuracies)
-        
+
     #plot_result(lambdas,accuracies)
     submission(x_test, w, i_test)
-    
