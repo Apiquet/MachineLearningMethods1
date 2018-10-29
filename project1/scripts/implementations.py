@@ -155,7 +155,7 @@ def least_squares(y, tx):
 
 def ridge_regression(y, tx, lambda_ ):
    """Calculate weights using ridge regression."""
-   aI = lambda_ * np.identity(tx.shape[1])
+   aI = 2*tx.shape[0]*lambda_ * np.identity(tx.shape[1])
    a = tx.T.dot(tx) + aI
    b = tx.T.dot(y)
    return np.linalg.solve(a, b)
@@ -207,6 +207,7 @@ def train(y, x, param):
         loss, w = logistic_regression(y, x, initial_w, MAX_ITERS, GAMMA)
     elif f == 5:
         loss, w = reg_logistic_regression(y, x, initial_w, MAX_ITERS, GAMMA, LAMBDA_)
+    print(w.shape)
     return w
 
 
@@ -256,10 +257,14 @@ def crossvalidation(y,x,k,n,param):
 
     x_train = standardize(x_train)
     x_validate = standardize(x_validate)
-
+    
+    #x_train = build_poly(x_train, 3)
+    #x_validate = build_poly(x_validate, 3)
+    
     x_train = addones(x_train)
     x_validate = addones(x_validate)
-
+    
+    print(x_train.shape)
     w = train(y_train, x_train, param)
     y_predictions = predict_labels(w, x_validate)
     accuracy = calculate_prediction_accuracy(y_predictions, y_validate)
@@ -281,7 +286,9 @@ def submission(x_test,w,i):
     x_test = remove_columns(x_test)
     x_test = replace_outliers_with_mean(x_test)
     x_test = standardize(x_test)
+    #x_test = build_poly(x_test,3)
     x_test = addones(x_test)
+    
     y_predictions = predict_labels(w, x_test)
     y_predictions = predict_reverse(y_predictions)
     y_predictions.reshape(y_predictions.shape[0],)
@@ -312,3 +319,4 @@ def main(param):
         
     #plot_result(lambdas,accuracies)
     submission(x_test, w, i_test)
+    

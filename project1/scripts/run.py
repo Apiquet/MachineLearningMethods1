@@ -17,11 +17,11 @@ function = 4 => logistic_regression
 function = 5 => reg_logistic_regression
 """
 
+    
 MAX_ITER = 1000
 GAMMA = 0.01
-LAMBDA_ = 2
-FUNCTION = 5
-
+LAMBDA_ = 0.1
+FUNCTION = 3
 params = [MAX_ITER, GAMMA, LAMBDA_, FUNCTION]
 
 implementations.main(params)
