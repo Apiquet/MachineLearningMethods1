@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+
+"""
+@author: SMARDA/ERBACHER/PIQUET
+"""
+
 import csv
 import numpy as np
 import matplotlib.pyplot as plt
@@ -24,6 +29,13 @@ def standardize(x):
         x[:,col_idx] = (x[:,col_idx] - np.mean(x[:,col_idx])) / np.std(x[:,col_idx])
         #x[:,col_idx] = (x[:,col_idx] - x[:,col_idx].min()) / (x[:,col_idx].max() - x[:,col_idx].min())
     return x
+
+
+def predict_reverse(y_pred):
+    """Generate a proper Y to submission with -1"""
+    y_pred[np.where(y_pred == 0)] = -1
+    return y_pred
+
 
 def batch_iter(y, tx, batch_size, num_batches=1, shuffle=True):
     """Create batches for batch gradient descent algorithm."""
@@ -101,7 +113,7 @@ def least_squares_GD(y, tx, initial_w, max_iters, gamma):
     for i in range(max_iters):
         e = y - tx.dot(w)
         grad = - tx.T.dot(e) / len(e)
-        w = w - gamma * grad
+        w = w - gamma * grad 
     loss = calculate_mse(e)
     return loss, w
 
@@ -111,8 +123,8 @@ def least_squares_SGD(y, tx, initial_w, batch_size, max_iters, gamma):
     for n_iter in range(max_iters):
         for y_batch, tx_batch in batch_iter(y, tx, batch_size=batch_size, num_batches=1):
             # compute a stochastic gradient and loss
-            err = y - tx.dot(w)
-            grad = -tx.T.dot(err) / len(err)
+            err = y_batch - tx_batch.dot(w)
+            grad = -tx_batch.T.dot(err) / len(err)
             # update w through the stochastic gradient update
             w = w - gamma * grad
         # calculate loss
@@ -131,7 +143,7 @@ def least_squares(y, tx):
 
 def ridge_regression(y, tx, lambda_ ):
    """Calculate weights using ridge regression."""
-   aI = 2 * tx.shape[0] * lambda_ * np.identity(tx.shape[1])
+   aI = lambda_ * np.identity(tx.shape[1])
    a = tx.T.dot(tx) + aI
    b = tx.T.dot(y)
    return np.linalg.solve(a, b)
@@ -152,7 +164,7 @@ def reg_logistic_regression(y, tx, initial_w, max_iters, gamma, lambda_):
 
    
     for i in range(max_iters):
-        grad = np.matmul(tx.T, sigmoid(np.matmul(tx,w)) - y)+ (lambda_*w)
+        grad = np.matmul(tx.T, sigmoid(np.matmul(tx,w)) - y) + (lambda_*w)
         
         w = w - gamma * grad
         
@@ -161,22 +173,27 @@ def reg_logistic_regression(y, tx, initial_w, max_iters, gamma, lambda_):
 
 
 
-"""
-TRAINING
-"""
 
 
-def train(y,x,lambda_):
+def train(y,x,param):
     """Choose algorithm for training."""
-    MAX_ITERS = 1000
-    GAMMA = 0.01
-    LAMBDA_ = lambda_
+    MAX_ITERS = param[0]
+    GAMMA = param[1]
+    LAMBDA_ = param[2]
+    f = param[3]
     initial_w = np.random.rand(x.shape[1],1)
-    #loss, w = least_squares_GD(y,x,initial_w, MAX_ITERS, GAMMA)
-    #loss , w = least_squares_SGD(y, x, initial_w, MAX_ITERS, GAMMA, LAMBDA)
-    #loss, w = least_squares(y, x)
-    #loss, w = logistic_regression(y, x, initial_w, MAX_ITERS, GAMMA)
-    loss, w = reg_logistic_regression(y, x, initial_w, MAX_ITERS, GAMMA, LAMBDA_)
+    if f == 0:
+        loss, w = least_squares_GD(y,x,initial_w, MAX_ITERS, GAMMA)
+    elif f == 1:
+        loss , w = least_squares_SGD(y, x, initial_w,1, MAX_ITERS, GAMMA)
+    elif f == 2:
+        loss,w = ridge_regression(y, x, LAMBDA_)
+    elif f == 3:
+        loss, w = least_squares(y, x)
+    elif f == 4:
+        loss, w = logistic_regression(y, x, initial_w, MAX_ITERS, GAMMA)
+    elif f == 5:
+        loss, w = reg_logistic_regression(y, x, initial_w, MAX_ITERS, GAMMA, LAMBDA_)
     return w
 
 
@@ -196,7 +213,8 @@ def calculate_prediction_accuracy(y_predictions, targets):
 
 
 
-def crossvalidation(y,x,k,n,lambda_):
+def crossvalidation(y,x,k,n,param):
+        "data divided in n part, validate on subset k and train on the other n-k "
         x_validate = x[k:k + x.shape[0]//n]
        
         y_validate = y[k:k + y.shape[0]//n]
@@ -209,54 +227,73 @@ def crossvalidation(y,x,k,n,lambda_):
         x_validate = replace_outliers_with_mean(x_validate)
         x_train = replace_outliers_with_mean(x_train)
         
+        #x_train = np.power(x_train,2)
+        #x_validate = np.power(x_validate,2)
+        
         x_train = standardize(x_train)
         x_validate = standardize(x_validate)
         
         x_train = addones(x_train)
         x_validate = addones(x_validate)
         
-        x_train = np.power(x_train,2)
-        x_validate = np.power(x_validate,2)
         
-        w = train(y_train,x_train,lambda_)
+        
+        w = train(y_train,x_train,param)
         y_predictions = predict_labels(w, x_validate)
         accuracy = calculate_prediction_accuracy(y_predictions, y_validate)
         return accuracy , y_predictions , w 
  
     
     
-
-y,x,i = load_csv_data('data/train.csv',sub_sample=False)
 def addones(x):
+    " Feature augmentation "
+    "Add one dimenssion to X with only 1, for W0"
     b = np.ones((x.shape[0],1), dtype = int)
-    x = np.column_stack((b, x))# Add one dimenssion to X with only 1,beacause 1*W0+ x1*W1 + ...
-    
+    x = np.column_stack((b, x))#
     return x
-# Generate test targets
-y = y.reshape(y.shape[0],1)  
-y_test, x_test, i = load_csv_data('data/test.csv',sub_sample=False)
-x = remove_columns(x)
-n = 1
-lambda_ = 0
-accuracies= []
-x , y = shuffle_data(x,y)
-for i in range(11):
-    lambda_ = i/10  
-    print("Lambda: "+str(lambda_)+"/"+str(10))
+
+def plot_result(lambdas,accuracies):
+    plt.plot(lambdas, accuracies)
+    plt.title('accuracy(Lambda)')
+    plt.xlabel('Lambda(log)')
+    plt.ylabel('Accuracy')
+    plt.xscale('log')
+    
+
+def submission(x_test,w,i):  
+    x_test = remove_columns(x_test)
+    x_test = replace_outliers_with_mean(x_test) 
+    x_test = standardize(x_test) 
+    x_test = addones(x_test)
+    y_predictions = predict_labels(w, x_test)
+    y_predictions = predict_reverse(y_predictions)
+    y_predictions.reshape(y_predictions.shape[0],)
+    create_csv_submission(i, y_predictions, 'data/sample-submission.csv')
+
+
+def main(param):
+    #load train set
+    y,x,i = load_csv_data('data/train.csv',sub_sample=False)
+    #load test set
+    y_test, x_test, i_test = load_csv_data('data/test.csv',sub_sample=False)
+    #reshape y
+    y = y.reshape(y.shape[0],1)  
+    #preprocess x ( remove features with lot of -999 )
+    x = remove_columns(x)
+    # n : number of sub-set for crossvalidation
+    n = 1
+    
+    accuracies= []
+    x , y = shuffle_data(x,y)
+    #lambdas = np.logspace(-1,1,10)
+    #Looping over lambda values     
+
     for k in range(0,x.shape[0],x.shape[0]//n):
-        accuracy , y_predictions , w = crossvalidation(y,x,k,n,lambda_)
+        accuracy , y_predictions , w = crossvalidation(y,x,k,n,param)
         accuracies.append(accuracy)
        
-print(accuracies)
-""" 
-fig, ax1 = plt.subplots()
-ax1.plot(range(len(accuracies)), accuracies)
-ax1.set_title("Accuracies according to Lambda (order m= 3)")
-ax1.set_xlabel("Lambda")  
-ax1.set_ylabel("Accuracy")  
-ax1.plot(x,y)
-fig.savefig('file.png')   # save the figure to file
-plt.close(fig) 
-"""
- 
-     
+        print(accuracies)
+    #plot_result(lambdas,accuracies)  
+    submission(x_test,w,i_test)
+
+
