@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import csv
 import numpy as np
-
+import matplotlib.pyplot as plt
 
 # Import all helper functions; packages listed explicitly for clarity.
 from proj1_helpers import load_csv_data, predict_labels, create_csv_submission
@@ -148,7 +148,7 @@ def logistic_regression(y, tx, initial_w, max_iters, gamma):
 def reg_logistic_regression(y, tx, initial_w, max_iters, gamma, lambda_):
     """Calculate weights using regularized logistic regression."""
     w = initial_w[:]
-
+    
 
    
     for i in range(max_iters):
@@ -166,11 +166,11 @@ TRAINING
 """
 
 
-def train(y,x):
+def train(y,x,lambda_):
     """Choose algorithm for training."""
     MAX_ITERS = 1000
     GAMMA = 0.01
-    LAMBDA_ = 0.5
+    LAMBDA_ = lambda_
     initial_w = np.random.rand(x.shape[1],1)
     #loss, w = least_squares_GD(y,x,initial_w, MAX_ITERS, GAMMA)
     #loss , w = least_squares_SGD(y, x, initial_w, MAX_ITERS, GAMMA, LAMBDA)
@@ -196,7 +196,7 @@ def calculate_prediction_accuracy(y_predictions, targets):
 
 
 
-def crossvalidation(y,x,k,n):
+def crossvalidation(y,x,k,n,lambda_):
         x_validate = x[k:k + x.shape[0]//n]
        
         y_validate = y[k:k + y.shape[0]//n]
@@ -211,9 +211,14 @@ def crossvalidation(y,x,k,n):
         
         x_train = standardize(x_train)
         x_validate = standardize(x_validate)
-        x = addones(x)
         
-        w = train(y_train,x_train)
+        x_train = addones(x_train)
+        x_validate = addones(x_validate)
+        
+        x_train = np.power(x_train,2)
+        x_validate = np.power(x_validate,2)
+        
+        w = train(y_train,x_train,lambda_)
         y_predictions = predict_labels(w, x_validate)
         accuracy = calculate_prediction_accuracy(y_predictions, y_validate)
         return accuracy , y_predictions , w 
@@ -230,16 +235,28 @@ def addones(x):
 # Generate test targets
 y = y.reshape(y.shape[0],1)  
 y_test, x_test, i = load_csv_data('data/test.csv',sub_sample=False)
-x = remove_columns(x)
+#x = remove_columns(x)
 n = 1
-
-x , y = shuffle_data(x,y)
+lambda_ = 0
 accuracies= []
-for k in range(0,x.shape[0],x.shape[0]//n):
-    accuracy , y_predictions , w = crossvalidation(y,x,k,n)
-    accuracies.append(accuracy)
-   
+x , y = shuffle_data(x,y)
+for i in range(11):
+    lambda_ = i/10  
+    print("Lambda: "+str(int(lambda_))+"/"+str(10))
+    for k in range(0,x.shape[0],x.shape[0]//n):
+        accuracy , y_predictions , w = crossvalidation(y,x,k,n,lambda_)
+        accuracies.append(accuracy)
+       
 print(accuracies)
-    
-    
-        
+""" 
+fig, ax1 = plt.subplots()
+ax1.plot(range(len(accuracies)), accuracies)
+ax1.set_title("Accuracies according to Lambda (order m= 3)")
+ax1.set_xlabel("Lambda")  
+ax1.set_ylabel("Accuracy")  
+ax1.plot(x,y)
+fig.savefig('file.png')   # save the figure to file
+plt.close(fig) 
+"""
+ 
+     
